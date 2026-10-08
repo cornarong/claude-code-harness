@@ -1,0 +1,33 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+*.class
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 환경별 설정 (머신마다 다른 절대경로 포함 — git 추적 제외)
+.claude/settings.local.json
+
+# 로그
+*.log
+logs/
+
+# 프롬프트 (로컬 전용 — git 추적 제외)
+prompts/
+
+# 환경변수 / 비밀값
+.env
+.env.*
+!.env.example
+*.pem
+*.key
