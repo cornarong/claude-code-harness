@@ -107,6 +107,23 @@
     .author { font-weight: 600; font-size: 14px; }
     .time { color: var(--muted); font-size: 12px; }
     .post-content { white-space: pre-wrap; word-break: break-word; }
+    .post-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .like-btn {
+      background: none;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 4px 12px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .like-btn.liked { color: var(--danger); border-color: var(--danger); }
+    .like-count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .like-msg { font-size: 12px; color: var(--danger); }
 
     .follow {
       background: var(--surface);
@@ -256,8 +273,17 @@
             <span class="time">${escapeHtml(formatTime(p.createdAt))}</span>
           </div>
           <div class="post-content">${escapeHtml(p.content)}</div>
+          <div class="post-actions" data-post-id="${escapeHtml(String(p.postId))}">
+            <button class="like-btn" aria-pressed="false">♡ 좋아요</button>
+            <span class="like-count">좋아요 –</span>
+            <span class="like-msg" role="status"></span>
+          </div>
         </article>
       `).join("");
+      $feed.querySelectorAll(".post-actions").forEach(($actions) => {
+        paintLikeButton($actions);
+        loadLikeCount($actions);
+      });
     }
 
     async function loadTimeline() {
@@ -339,6 +365,78 @@
         $followBtn.disabled = $unfollowBtn.disabled = false;
       }
     }
+
+    // 좋아요 — 요청자는 팔로우 영역의 "내 유저 ID"를 함께 쓴다 (비었으면 1)
+    function currentUserId() {
+      const me = Number($followMe.value);
+      return Number.isInteger(me) && me >= 1 ? me : 1;
+    }
+
+    // "내가 눌렀는지"를 알려주는 API가 없어서, 이 페이지에서 누른 결과만 기억한다 (키: "유저:글")
+    const likedByMe = new Set();
+    const likeKey = (postId) => `${currentUserId()}:${postId}`;
+
+    function paintLikeButton($actions) {
+      const liked = likedByMe.has(likeKey($actions.dataset.postId));
+      const $btn = $actions.querySelector(".like-btn");
+      $btn.classList.toggle("liked", liked);
+      $btn.setAttribute("aria-pressed", String(liked));
+      $btn.textContent = liked ? "♥ 좋아요 취소" : "♡ 좋아요";
+    }
+
+    // GET /posts/{id}/likes/count
+    async function loadLikeCount($actions) {
+      const $count = $actions.querySelector(".like-count");
+      try {
+        const data = await unwrap(await fetch(`/posts/${$actions.dataset.postId}/likes/count`));
+        $count.textContent = `좋아요 ${data.count}`;
+      } catch (_) {
+        $count.textContent = "좋아요 –";
+      }
+    }
+
+    // POST /posts/{id}/likes = 좋아요, DELETE /posts/{id}/likes = 취소 (요청자는 X-User-Id 헤더)
+    async function toggleLike($actions) {
+      const postId = $actions.dataset.postId;
+      const key = likeKey(postId);
+      const $btn = $actions.querySelector(".like-btn");
+      const $msg = $actions.querySelector(".like-msg");
+      const liked = likedByMe.has(key);
+      $btn.disabled = true;
+      $msg.textContent = "";
+      try {
+        const res = await fetch(`/posts/${postId}/likes`, {
+          method: liked ? "DELETE" : "POST",
+          headers: { "X-User-Id": String(currentUserId()) }
+        });
+        if (res.ok) {
+          if (liked) likedByMe.delete(key); else likedByMe.add(key);
+        } else if (res.status === 409) {
+          // 이미 눌러 둔 글 — 버튼을 "누른 상태"로 맞춘다
+          likedByMe.add(key);
+          $msg.textContent = "이미 좋아요를 누른 글이에요.";
+        } else if (res.status === 404) {
+          $msg.textContent = "글을 찾을 수 없어요. (404)";
+        } else {
+          $msg.textContent = `요청에 실패했어요. (${res.status})`;
+        }
+      } catch (e) {
+        $msg.textContent = "서버에 연결하지 못했어요.";
+      } finally {
+        $btn.disabled = false;
+        paintLikeButton($actions);
+        loadLikeCount($actions);
+      }
+    }
+
+    $feed.addEventListener("click", (e) => {
+      const $btn = e.target.closest(".like-btn");
+      if ($btn) toggleLike($btn.closest(".post-actions"));
+    });
+    // 유저 ID를 바꾸면 그 유저 기준으로 버튼 상태를 다시 그린다
+    $followMe.addEventListener("input", () => {
+      $feed.querySelectorAll(".post-actions").forEach(paintLikeButton);
+    });
 
     $followBtn.addEventListener("click", () => requestFollow("POST"));
     $unfollowBtn.addEventListener("click", () => requestFollow("DELETE"));

@@ -73,6 +73,7 @@ case "$file_path" in
   */modules/timeline/*)  task=":modules:timeline:test" ;;
   */modules/user/*)      task=":modules:user:test" ;;
   */modules/follow/*)    task=":modules:follow:test" ;;
+  */modules/engagement/*) task=":modules:engagement:test" ;;
   */apps/customer-api/*) task=":apps:customer-api:test" ;;
 esac
 
