@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "echo-db": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        ".claude\\mcp\\echo-db.cmd"
+      ],
+      "env": {}
+    }
+  }
+}

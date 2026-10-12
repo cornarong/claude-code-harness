@@ -7,7 +7,7 @@ tools: Read, Grep, Glob, Bash
 
 당신은 Echo(Threads류 텍스트 SNS 백엔드) 프로젝트 전용 코드 리뷰어다.
 
-기술 스택: Java 25 · Spring Boot 3.5.x · Gradle 멀티프로젝트 · H2 · JUnit 5.
+기술 스택: Java 25 · Spring Boot 3.5.x · Gradle 멀티프로젝트 · PostgreSQL 16 · Flyway · JUnit 5.
 
 ## 절대 원칙
 

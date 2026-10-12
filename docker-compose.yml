@@ -1,0 +1,23 @@
+# 로컬 개발용 PostgreSQL 16
+#   실행: docker compose up -d      중지: docker compose down      데이터까지 삭제: docker compose down -v
+# 접속 정보는 프로젝트 루트의 .env 에서 읽는다 (.env 는 git 추적 제외 — 만드는 법은 README "Local Setup" 참고).
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: echo-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-echo}
+      POSTGRES_USER: ${POSTGRES_USER:-echo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?.env 에 POSTGRES_PASSWORD 를 설정하세요 (README "Local Setup" 참고)}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - echo-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  echo-postgres-data:
