@@ -1,7 +1,10 @@
 package com.echo.api;
 
 import com.echo.api.post.CreatePostRequest;
+import com.echo.moderation.domain.BannedWord;
+import com.echo.moderation.infrastructure.BannedWordRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +35,9 @@ class PostIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private BannedWordRepository bannedWordRepository;
+
     @Test
     @DisplayName("POST /posts — 정상 글 작성 시 201 반환")
     void createPost_success() throws Exception {
@@ -52,6 +58,21 @@ class PostIntegrationTest {
         // 281자 content
         String longContent = "a".repeat(281);
         CreatePostRequest request = new CreatePostRequest(longContent);
+
+        mockMvc.perform(post("/posts")
+                .header("X-User-Id", "1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /posts — DB에 등록된 금칙어가 들어 있으면 대소문자와 상관없이 400 반환")
+    void createPost_bannedWord_400() throws Exception {
+        // 다른 테스트의 글과 겹치지 않도록 매번 고유한 금칙어를 등록한다
+        String word = "banned" + UUID.randomUUID().toString().substring(0, 8);
+        bannedWordRepository.save(new BannedWord(word));
+        CreatePostRequest request = new CreatePostRequest("이 글에는 " + word.toUpperCase() + " 가 들어 있다");
 
         mockMvc.perform(post("/posts")
                 .header("X-User-Id", "1")
